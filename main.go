@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/csrf"
 	"github.com/sudonite/lenslocked/controllers"
+	"github.com/sudonite/lenslocked/migrations"
 	"github.com/sudonite/lenslocked/models"
 	"github.com/sudonite/lenslocked/templates"
 	"github.com/sudonite/lenslocked/views"
@@ -35,6 +36,11 @@ func main() {
 	defer db.Close()
 
 	err = db.Ping()
+	if err != nil {
+		panic(err)
+	}
+
+	err = models.MigrateFS(db, migrations.FS, ".")
 	if err != nil {
 		panic(err)
 	}
