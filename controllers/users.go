@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/sudonite/lenslocked/context"
+	"github.com/sudonite/lenslocked/errors"
 	"github.com/sudonite/lenslocked/models"
 )
 
@@ -33,12 +34,18 @@ func (u Users) New(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u Users) Create(w http.ResponseWriter, r *http.Request) {
-	email := r.FormValue("email")
-	password := r.FormValue("password")
-	user, err := u.UserService.Create(email, password)
+	var data struct {
+		Email    string
+		Password string
+	}
+	data.Email = r.FormValue("email")
+	data.Password = r.FormValue("password")
+	user, err := u.UserService.Create(data.Email, data.Password)
 	if err != nil {
-		fmt.Println(err)
-		http.Error(w, "Something went wrong", http.StatusInternalServerError)
+		if errors.Is(err, models.ErrEmailTaken) {
+			errors.Public(err, "That email address is already associated with an account.")
+		}
+		u.Templates.New.Execute(w, r, data, err)
 		return
 	}
 

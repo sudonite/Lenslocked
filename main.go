@@ -6,7 +6,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi"
 	"github.com/gorilla/csrf"
 	"github.com/joho/godotenv"
 	"github.com/sudonite/lenslocked/controllers"
