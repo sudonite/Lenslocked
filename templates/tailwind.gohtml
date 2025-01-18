@@ -5,16 +5,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen bg-gray-100">
   <header class="bg-gradient-to-r from-blue-800 to-indigo-800 text-white">
     <nav class="px-8 py-6 flex items-center">
       <div class="text-4xl pr-12 font-serif">Lenslocked</div>
-      <div class="flex-grow">
+      <div>
         <a class="text-lg font-semibold hover:text-blue-100 pr-8" href="/">Home</a>
         <a class="text-lg font-semibold hover:text-blue-100 pr-8" href="/contact">Contact</a>
         <a class="text-lg font-semibold hover:text-blue-100 pr-8" href="/faq">FAQ</a>
       </div>
+      {{if currentUser}}
+        <div class="flex-grow flex flex-row-reverse">
+          <a class="text-lg font-semibold hover:text-blue-100 pr-8" href="/galleries">My Galleries</a>
+        </div>
+      {{else}}
+        <div class="flex-grow"></div>
+      {{end}}
       <div>
         {{if currentUser}}
           <form action="/signout" method="post" class="inline pr-4">
