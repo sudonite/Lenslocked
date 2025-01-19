@@ -21,7 +21,7 @@
   <div class="py-4">
     <h2 class="pb-2 text-sm font-semibold text-gray-800">Current Images</h2>
     <div class="py-2 grid grid-cols-8 gap-2">
-      {{range .Image}}
+      {{range .Images}}
         <div class="h-min w-full relative">
           <div class="absolute top-2 right-2">
             {{template "delete_image_form" .}}

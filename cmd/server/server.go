@@ -35,7 +35,17 @@ func loadEnvConfig() (config, error) {
 		return cfg, err
 	}
 
-	cfg.PSQL = models.DefaultPostgresConfig()
+	cfg.PSQL = models.PostgresConfig{
+		Host:     os.Getenv("PSQL_HOST"),
+		Port:     os.Getenv("PSQL_PORT"),
+		User:     os.Getenv("PSQL_USER"),
+		Password: os.Getenv("PSQL_PASSWORD"),
+		Database: os.Getenv("PSQL_DATABASE"),
+		SSLMode:  os.Getenv("PSQL_SSLMODE"),
+	}
+	if cfg.PSQL.Host == "" && cfg.PSQL.Port == "" {
+		return cfg, fmt.Errorf("No PSQL config provided.")
+	}
 
 	cfg.SMTP.Host = os.Getenv("SMTP_HOST")
 	portStr := os.Getenv("SMTP_PORT")
@@ -46,35 +56,30 @@ func loadEnvConfig() (config, error) {
 	cfg.SMTP.Username = os.Getenv("SMTP_USERNAME")
 	cfg.SMTP.Password = os.Getenv("SMTP_PASSWORD")
 
-	cfg.CSRF.Key = "gFvi45R4fy5xNBlnEeZtQbfAVfAVCYEIAUX"
-	cfg.CSRF.Secure = false
+	cfg.CSRF.Key = os.Getenv("CSRF_KEY")
+	cfg.CSRF.Secure = os.Getenv("CSRF_SECURE") == "true"
 
-	cfg.Server.Address = ":3000"
+	cfg.Server.Address = os.Getenv("SERVER_ADDRESS")
 
 	return cfg, nil
 }
 
-func main() {
-	cfg, err := loadEnvConfig()
-	if err != nil {
-		panic(err)
-	}
-
+func run(cfg config) error {
 	// Setup the Database
 	db, err := models.Open(cfg.PSQL)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer db.Close()
 
 	err = db.Ping()
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	err = models.MigrateFS(db, migrations.FS, ".")
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	// Setup Services
@@ -168,13 +173,27 @@ func main() {
 			r.Post("/{id}/images/{filename}/delete", galleriesC.DeleteImage)
 		})
 	})
+
+	assetHandler := http.FileServer(http.Dir("assets"))
+	r.Get("/assets/*", http.StripPrefix("/assets", assetHandler).ServeHTTP)
+
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Page not found", http.StatusNotFound)
 	})
 
 	// Start the Server
 	fmt.Printf("Starting the server on %s...\n", cfg.Server.Address)
-	err = http.ListenAndServe(cfg.Server.Address, r)
+
+	return http.ListenAndServe(cfg.Server.Address, r)
+}
+
+func main() {
+	cfg, err := loadEnvConfig()
+	if err != nil {
+		panic(err)
+	}
+
+	err = run(cfg)
 	if err != nil {
 		panic(err)
 	}
