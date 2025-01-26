@@ -1,11 +1,14 @@
 package models
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
 	"io"
 	"io/fs"
+	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -102,8 +105,8 @@ func (service *GalleryService) Update(gallery *Gallery) error {
 	return nil
 }
 
-func (service *GalleryService) CreateImage(galleryID int, filename string, contents io.ReadSeeker) error {
-	err := checkContentType(contents, service.imageContentTypes())
+func (service *GalleryService) CreateImage(galleryID int, filename string, contents io.Reader) error {
+	readBytes, err := checkContentType(contents, service.imageContentTypes())
 	if err != nil {
 		return fmt.Errorf("creating image %v: %w", filename, err)
 	}
@@ -126,7 +129,9 @@ func (service *GalleryService) CreateImage(galleryID int, filename string, conte
 	}
 	defer dst.Close()
 
-	_, err = io.Copy(dst, contents)
+	completeFile := io.MultiReader(bytes.NewReader(readBytes), contents)
+
+	_, err = io.Copy(dst, completeFile)
 	if err != nil {
 		return fmt.Errorf("copying contents to image: %w", err)
 	}
@@ -185,6 +190,20 @@ func (service *GalleryService) Image(galleryID int, filename string) (Image, err
 	}, nil
 }
 
+func (service *GalleryService) CreateImageViaURL(galleryID int, url string) error {
+	filename := path.Base(url)
+	resp, err := http.Get(url)
+	if err != nil {
+		return fmt.Errorf("downloading image: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("downloading image: invalid status code: %d", resp.StatusCode)
+	}
+
+	return service.CreateImage(galleryID, filename, resp.Body)
+}
+
 func (service *GalleryService) DeleteImage(galleryID int, filename string) error {
 	image, err := service.Image(galleryID, filename)
 	if err != nil {
@@ -192,7 +211,7 @@ func (service *GalleryService) DeleteImage(galleryID int, filename string) error
 	}
 	err = os.Remove(image.Path)
 	if err != nil {
-		fmt.Errorf("deleting image: %w", err)
+		return fmt.Errorf("deleting image: %w", err)
 	}
 	return nil
 }

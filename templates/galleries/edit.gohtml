@@ -15,8 +15,11 @@
       <button type="submit" class="py-2 px-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-lg">Update</button>
     </div>
   </form>
-  <div>
+  <div class="py-4">
     {{template "upload_image_form" .}}
+  </div>
+  <div class="py-4">
+    {{template "images_via_dropbox_form" .}}
   </div>
   <div class="py-4">
     <h2 class="pb-2 text-sm font-semibold text-gray-800">Current Images</h2>
@@ -64,4 +67,48 @@
   </div>
   <button type="submit" class="py-2 px-8 bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-bold rounded">Upload</button>
 </form>
+{{end}}
+
+{{define "images_via_dropbox_form"}}
+<form action="/galleries/{{.ID}}/images/url" method="post" enctype="multipart/form-data" id="dropbox-chooser-form">
+  <div class="hidden"> 
+    {{csrfField}}
+  </div>
+  <div class="py-2">
+    <p class="block mb-2 text-sm font-semibold text-gray-800">Add Images via Dropbox</p>
+  </div>
+</form>
+{{end}}
+
+{{define "custom_footer"}}
+<script>
+  function setupDropbox() {
+    let dbxForm = document.getElementById("dropbox-chooser-form");
+    if(dbxForm === null) {
+      return;
+    }
+
+    let options = {
+      success: function(files) {
+        for(let i = 0; i < files.length; i++) {
+          let input = document.createElement("input");
+          input.type = "hidden";
+          input.name = "files"
+          input.value = files[i].link;
+          dbxForm.appendChild(input);
+        }
+        dbxForm.submit();
+      },
+      linkType: "direct",
+      multiselect: true,
+      extensions: ["images"],
+      folderselect: false,
+    };
+  
+    let button = Dropbox.createChooseButton(options);
+    dbxForm.appendChild(button);
+  }
+
+  setupDropbox();
+</script>
 {{end}}
